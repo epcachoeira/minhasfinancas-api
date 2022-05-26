@@ -1,8 +1,12 @@
 package com.epc.minhasfinancas.services.impl;
 
 import java.math.BigDecimal;
+import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.springframework.data.domain.Example;
 import org.springframework.data.domain.ExampleMatcher;
@@ -13,6 +17,7 @@ import org.springframework.transaction.annotation.Transactional;
 import com.epc.minhasfinancas.exceptions.RegraNegocioException;
 import com.epc.minhasfinancas.model.entity.Lancamento;
 import com.epc.minhasfinancas.model.enums.StatusLancamento;
+import com.epc.minhasfinancas.model.enums.TipoLancamento;
 import com.epc.minhasfinancas.model.repositories.LancamentoRepository;
 import com.epc.minhasfinancas.services.LancamentoService;
 
@@ -30,6 +35,11 @@ public class LancamentoServiceImpl implements LancamentoService {
 	public Lancamento salvar(Lancamento lancamento) {
 		validar(lancamento);
 		lancamento.setStatus(StatusLancamento.PENDENTE);
+		if(lancamento.getDataCadastro() == null) {
+			Date date = new Date();
+			LocalDate localDate = date.toInstant().atZone( ZoneId.systemDefault() ).toLocalDate();
+			lancamento.setDataCadastro(localDate);
+		}
 		return repository.save(lancamento);
 	}
 
@@ -99,6 +109,25 @@ public class LancamentoServiceImpl implements LancamentoService {
 		if(lancamento.getTipo() == null) {
 			throw new RegraNegocioException("Informe um tipo de lançamento");
 		}
+	}
+
+	@Override
+	public Optional<Lancamento> obterPorId(Long id) {
+		return repository.findById(id);
+	}
+
+	@Override
+	@Transactional(readOnly = true)
+	public BigDecimal obterSaldoPorUsuario(Long id) {
+		BigDecimal receitas = repository.obterSaldoPorTipoLancamentoEUsuario(id, TipoLancamento.RECEITA);
+		BigDecimal despesas = repository.obterSaldoPorTipoLancamentoEUsuario(id, TipoLancamento.DESPESA);
+		if(receitas == null) {
+			receitas = BigDecimal.ZERO;
+		}
+		if(despesas == null) {
+			despesas = BigDecimal.ZERO;
+		}
+		return receitas.subtract(despesas);
 	}
 
 }
