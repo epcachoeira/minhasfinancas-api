@@ -26,8 +26,6 @@ public class UsuarioServiceImpl implements UsuarioService {
 	@Override
 	public Usuario autenticar(String email, String senha) {
 		
-		System.out.println(email + "  -  " + senha);
-		
 		Optional<Usuario> usuario = repository.findByEmail(email);
 		
 		if(!usuario.isPresent()) {
